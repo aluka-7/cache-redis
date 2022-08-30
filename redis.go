@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -8,7 +9,7 @@ import (
 
 	"github.com/aluka-7/cache"
 	"github.com/aluka-7/utils"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 )
 
 func init() {
@@ -20,7 +21,7 @@ func init() {
 // 通常,通过base/cache软件包使用驱动程序
 type cacheRedisDriver struct{}
 
-func (c cacheRedisDriver) New(cfg map[string]string) cache.Provider {
+func (c cacheRedisDriver) New(ctx context.Context, cfg map[string]string) cache.Provider {
 	var database = 0
 	if v, ok := cfg["database"]; ok {
 		database = utils.StrTo(v).MustInt()
@@ -28,7 +29,7 @@ func (c cacheRedisDriver) New(cfg map[string]string) cache.Provider {
 	ping, _ := strconv.ParseBool(cfg["ping"])
 	client := redis.NewClient(&redis.Options{Addr: cfg["host"] + ":" + cfg["port"], Password: cfg["password"], DB: database})
 	if ping {
-		if pin, err := client.Ping().Result(); err != nil {
+		if pin, err := client.Ping(ctx).Result(); err != nil {
 			log.Panicf("Redis Ping:%+v\n", err)
 		} else {
 			log.Printf("Redis Pong:%s\n", pin)
@@ -55,24 +56,21 @@ type SingleRedisProvider struct {
 
 /**
  * 判断缓存中是否存在指定的key
- *
  * @param key
  * @return
  */
-func (r SingleRedisProvider) Exists(key string) bool {
-	num, err := r.client.Exists(key).Result()
+func (r SingleRedisProvider) Exists(ctx context.Context, key string) bool {
+	num, err := r.client.Exists(ctx, key).Result()
 	return num > 0 && err == nil
 }
 
 /**
  * 根据给定的key从分布式缓存中读取数据并返回，如果不存在或已过期则返回Null。
- *
  * @param key 缓存唯一键
  * @return
  */
-
-func (r SingleRedisProvider) String(key string) string {
-	return r.client.Get(key).Val()
+func (r SingleRedisProvider) String(ctx context.Context, key string) string {
+	return r.client.Get(ctx, key).Val()
 }
 
 /**
@@ -81,16 +79,16 @@ func (r SingleRedisProvider) String(key string) string {
  * @param dataProvider 数据提供器
  * @return
  */
-func (r SingleRedisProvider) GetByProvider(key string, provider cache.DataProvider) string {
-	v, err := r.client.Get(key).Result()
+func (r SingleRedisProvider) GetByProvider(ctx context.Context, key string, provider cache.DataProvider) string {
+	v, err := r.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		v = provider.Data(key)
 		if v != "null" {
 			expiry := provider.Expires()
 			if expiry > 0 {
-				r.SetExpires(key, v, time.Duration(expiry))
+				r.SetExpires(ctx, key, v, time.Duration(expiry))
 			} else {
-				r.Set(key, v)
+				r.Set(ctx, key, v)
 			}
 		}
 	}
@@ -103,8 +101,8 @@ func (r SingleRedisProvider) GetByProvider(key string, provider cache.DataProvid
  * @param key   缓存唯一键
  * @param value 对应的值
  */
-func (r SingleRedisProvider) Set(key, value string) {
-	r.SetExpires(key, value, -1)
+func (r SingleRedisProvider) Set(ctx context.Context, key, value string) {
+	r.SetExpires(ctx, key, value, -1)
 }
 
 /**
@@ -115,8 +113,8 @@ func (r SingleRedisProvider) Set(key, value string) {
  * @param expires 过期时间，单位秒
  * @return
  */
-func (r SingleRedisProvider) SetExpires(key, value string, expires time.Duration) bool {
-	err := r.client.Set(key, value, expires).Err()
+func (r SingleRedisProvider) SetExpires(ctx context.Context, key, value string, expires time.Duration) bool {
+	err := r.client.Set(ctx, key, value, expires).Err()
 	return err == nil
 }
 
@@ -126,8 +124,8 @@ func (r SingleRedisProvider) SetExpires(key, value string, expires time.Duration
  * @param key
  * @return
  */
-func (r SingleRedisProvider) Delete(key string) {
-	r.client.Del(key)
+func (r SingleRedisProvider) Delete(ctx context.Context, key string) {
+	r.client.Del(ctx, key)
 }
 
 /**
@@ -135,8 +133,8 @@ func (r SingleRedisProvider) Delete(key string) {
  *
  * @param keys
  */
-func (r SingleRedisProvider) BatchDelete(keys ...string) {
-	r.client.Del(keys...)
+func (r SingleRedisProvider) BatchDelete(ctx context.Context, keys ...string) {
+	r.client.Del(ctx, keys...)
 }
 
 /**
@@ -146,8 +144,8 @@ func (r SingleRedisProvider) BatchDelete(keys ...string) {
  * @param field map的字段名称
  * @param value 要设置的字段值
  */
-func (r SingleRedisProvider) HSet(key, field, value string) {
-	r.client.HSet(key, field, value)
+func (r SingleRedisProvider) HSet(ctx context.Context, key, field, value string) {
+	r.client.HSet(ctx, key, field, value)
 }
 
 /**
@@ -157,8 +155,8 @@ func (r SingleRedisProvider) HSet(key, field, value string) {
  * @param field map的字段名称
  * @return
  */
-func (r SingleRedisProvider) HGet(key, field string) string {
-	return r.client.HGet(key, field).Val()
+func (r SingleRedisProvider) HGet(ctx context.Context, key, field string) string {
+	return r.client.HGet(ctx, key, field).Val()
 }
 
 /**
@@ -167,8 +165,8 @@ func (r SingleRedisProvider) HGet(key, field string) string {
  * @param key map数据的键
  * @return
  */
-func (r SingleRedisProvider) HGetAll(key string) map[string]string {
-	return r.client.HGetAll(key).Val()
+func (r SingleRedisProvider) HGetAll(ctx context.Context, key string) map[string]string {
+	return r.client.HGetAll(ctx, key).Val()
 }
 
 /**
@@ -178,8 +176,8 @@ func (r SingleRedisProvider) HGetAll(key string) map[string]string {
  * @param field map中的key名称
  */
 
-func (r SingleRedisProvider) HDelete(key string, fields ...string) {
-	r.client.HDel(key, fields...)
+func (r SingleRedisProvider) HDelete(ctx context.Context, key string, fields ...string) {
+	r.client.HDel(ctx, key, fields...)
 }
 
 /**
@@ -189,8 +187,8 @@ func (r SingleRedisProvider) HDelete(key string, fields ...string) {
  * @param field
  * @return
  */
-func (r SingleRedisProvider) HExists(key, field string) bool {
-	v, _ := r.client.HExists(key, field).Result()
+func (r SingleRedisProvider) HExists(ctx context.Context, key, field string) bool {
+	v, _ := r.client.HExists(ctx, key, field).Result()
 	return v
 }
 
@@ -202,8 +200,8 @@ func (r SingleRedisProvider) HExists(key, field string) bool {
  * @param args   脚本的参数列表
  * @return
  */
-func (r SingleRedisProvider) Val(script string, keys []string, args ...interface{}) {
-	r.client.Eval(script, keys, args...)
+func (r SingleRedisProvider) Val(ctx context.Context, script string, keys []string, args ...interface{}) {
+	r.client.Eval(ctx, script, keys, args...)
 }
 
 /**
@@ -212,9 +210,9 @@ func (r SingleRedisProvider) Val(script string, keys []string, args ...interface
  * @param operator
  * @return
  */
-func (r *SingleRedisProvider) Operate(cmd interface{}) error {
+func (r *SingleRedisProvider) Operate(ctx context.Context, cmd interface{}) error {
 	_cmd := cmd.(*redis.Cmd)
-	return r.client.Process(_cmd)
+	return r.client.Process(ctx, _cmd)
 }
 
 /**
