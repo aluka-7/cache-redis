@@ -126,6 +126,12 @@ func (r SingleRedisProvider) Val(ctx context.Context, script string, keys []stri
 	return v
 }
 
+// Incr 对指定的key结果集执行自增操作
+func (r SingleRedisProvider) Incr(ctx context.Context, key string) bool {
+	err := r.client.Incr(ctx, key).Err()
+	return err == nil
+}
+
 // Operate 通过直接调用缓存客户端进行缓存操作，该操作适用于高级操作，如果执行失败会返回Null。
 func (r *SingleRedisProvider) Operate(ctx context.Context, cmd interface{}) error {
 	_cmd := cmd.(*redis.Cmd)
