@@ -3,7 +3,7 @@ module github.com/aluka-7/cache-redis
 go 1.16
 
 require (
-	github.com/aluka-7/cache v1.0.5
+	github.com/aluka-7/cache v1.0.6
 	github.com/aluka-7/configuration v1.0.1 // indirect
 	github.com/aluka-7/utils v1.0.2
 	github.com/go-redis/redis/v8 v8.11.5

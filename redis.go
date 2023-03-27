@@ -132,6 +132,34 @@ func (r SingleRedisProvider) Incr(ctx context.Context, key string) bool {
 	return err == nil
 }
 
+func (r SingleRedisProvider) IncrExpires(ctx context.Context, key string, expires time.Duration) bool {
+	tx := r.client.TxPipeline()
+	err := tx.Incr(ctx, key).Err()
+	if err != nil {
+		return false
+	}
+	err = tx.Expire(ctx, key, expires).Err()
+	if err != nil {
+		return false
+	}
+	_, err = tx.Exec(ctx)
+	return err == nil
+}
+
+func (r SingleRedisProvider) IncrByExpires(ctx context.Context, key string, value int64, expires time.Duration) bool {
+	tx := r.client.TxPipeline()
+	err := tx.IncrBy(ctx, key, value).Err()
+	if err != nil {
+		return false
+	}
+	err = tx.Expire(ctx, key, expires).Err()
+	if err != nil {
+		return false
+	}
+	_, err = tx.Exec(ctx)
+	return err == nil
+}
+
 // Operate 通过直接调用缓存客户端进行缓存操作，该操作适用于高级操作，如果执行失败会返回Null。
 func (r *SingleRedisProvider) Operate(ctx context.Context, cmd interface{}) error {
 	_cmd := cmd.(*redis.Cmd)
