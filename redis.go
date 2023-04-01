@@ -55,6 +55,16 @@ type SingleRedisProvider struct {
 	client *redis.Client
 }
 
+func (r SingleRedisProvider) SetNX(ctx context.Context, key, value string, expires time.Duration) bool {
+	err := r.client.SetNX(ctx, key, value, expires).Err()
+	return err == nil
+}
+
+func (r SingleRedisProvider) SMembers(ctx context.Context, key string) []string {
+	v, _ := r.client.SMembers(ctx, key).Result()
+	return v
+}
+
 // Exists
 // 判断缓存中是否存在指定的key
 func (r SingleRedisProvider) Exists(ctx context.Context, key string) bool {
