@@ -55,6 +55,10 @@ type SingleRedisProvider struct {
 	client *redis.Client
 }
 
+func (r SingleRedisProvider) Client() interface{} {
+	return r.client
+}
+
 func (r SingleRedisProvider) LRange(ctx context.Context, key string, start, stop int64) []string {
 	v, _ := r.client.LRange(ctx, key, start, stop).Result()
 	return v
