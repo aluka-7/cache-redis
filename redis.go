@@ -55,6 +55,16 @@ type SingleRedisProvider struct {
 	client *redis.Client
 }
 
+func (r SingleRedisProvider) SAdd(ctx context.Context, key string, members ...interface{}) bool {
+	err := r.client.SAdd(ctx, key, members...).Err()
+	return err == nil
+}
+
+func (r SingleRedisProvider) SCard(ctx context.Context, key string) int64 {
+	v, _ := r.client.SCard(ctx, key).Result()
+	return v
+}
+
 func (r SingleRedisProvider) SetNX(ctx context.Context, key, value string, expires time.Duration) bool {
 	err := r.client.SetNX(ctx, key, value, expires).Err()
 	return err == nil
