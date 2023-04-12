@@ -55,6 +55,41 @@ type SingleRedisProvider struct {
 	client *redis.Client
 }
 
+func (r SingleRedisProvider) LRange(ctx context.Context, key string, start, stop int64) []string {
+	v, _ := r.client.LRange(ctx, key, start, stop).Result()
+	return v
+}
+
+func (r SingleRedisProvider) LIndex(ctx context.Context, key string, index int64) string {
+	v, _ := r.client.LIndex(ctx, key, index).Result()
+	return v
+}
+
+func (r SingleRedisProvider) RPush(ctx context.Context, key string, value ...interface{}) bool {
+	err := r.client.RPush(ctx, key, value...).Err()
+	return err == nil
+}
+
+func (r SingleRedisProvider) LPush(ctx context.Context, key string, value ...interface{}) bool {
+	err := r.client.LPush(ctx, key, value...).Err()
+	return err == nil
+}
+
+func (r SingleRedisProvider) LLen(ctx context.Context, key string) int64 {
+	v, _ := r.client.LLen(ctx, key).Result()
+	return v
+}
+
+func (r SingleRedisProvider) LPop(ctx context.Context, key string) string {
+	v, _ := r.client.LPop(ctx, key).Result()
+	return v
+}
+
+func (r SingleRedisProvider) RPop(ctx context.Context, key string) string {
+	v, _ := r.client.RPop(ctx, key).Result()
+	return v
+}
+
 func (r SingleRedisProvider) SAdd(ctx context.Context, key string, members ...interface{}) bool {
 	err := r.client.SAdd(ctx, key, members...).Err()
 	return err == nil
