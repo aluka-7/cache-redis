@@ -28,11 +28,13 @@ func (c cacheRedisDriver) New(ctx context.Context, cfg map[string]string) cache.
 	}
 	ping, _ := strconv.ParseBool(cfg["ping"])
 	poolSize, _ := strconv.Atoi(cfg["poolSize"])
+	minIdleConns, _ := strconv.Atoi(cfg["minIdleConns"])
 	client := redis.NewClient(&redis.Options{
-		Addr:     cfg["host"] + ":" + cfg["port"],
-		Password: cfg["password"],
-		DB:       database,
-		PoolSize: poolSize,
+		Addr:         cfg["host"] + ":" + cfg["port"],
+		Password:     cfg["password"],
+		DB:           database,
+		PoolSize:     poolSize,
+		MinIdleConns: minIdleConns,
 	})
 	if ping {
 		if pin, err := client.Ping(ctx).Result(); err != nil {
